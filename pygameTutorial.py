@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 import SWParticles as swp
- 
+import massSpring as spring
 class App:
     def __init__(self):
         self.running = True
@@ -58,6 +58,7 @@ class App:
        
     #logic to occur each loop. Can create a dt here!        
     def on_loop(self):
+        
         #creating dt
         currentTime = pygame.time.get_ticks()
         self.dt = (currentTime - self.oldTime) / 1000.0
@@ -72,8 +73,36 @@ class App:
             self.particleList[i].updateDeltaTime(self.dt)
             self.particleList[i].move()
             self.particleList[i].mouseDrag()
-            self.particleList[i].gravity()
+            if i == self.numberOfParticles - 1:
+                self.particleList[i].gravity()
             self.particleList[i].bounce(0.8)
+            
+        #updating particles 1 and 2 which are linked by a spring
+        #NOTE!!!! springs break the ability to click on a linked particle.
+        pos1 = np.array([self.particleList[0].x, self.particleList[0].y]) 
+        pos2 = np.array([self.particleList[1].x, self.particleList[1].y])
+        
+        vel1 = np.array([self.particleList[0].xvel(),
+                         self.particleList[0].yvel()])
+        vel2 = np.array([self.particleList[1].xvel(),
+                         self.particleList[1].yvel()])
+        #position1, velocity1, position2, velocity2, ks, kd, restLength, dt
+        firstLink = spring.SpringLink(pos1, vel1, pos2, vel2,
+                                      5, 2, 50, self.dt)
+        newPosAndVel = firstLink.springForceRK4()
+        self.particleList[0].x = newPosAndVel[0][0]
+        self.particleList[0].y = newPosAndVel[0][1]
+        self.particleList[0].updateVel(newPosAndVel[1][0], 
+                                       newPosAndVel[1][1])
+                
+        self.particleList[1].x = newPosAndVel[2][0]
+        self.particleList[1].y = newPosAndVel[2][1]
+        self.particleList[1].updateVel(newPosAndVel[3][0], 
+                                       newPosAndVel[3][1])
+        
+        
+        #collision must be checked after all of the movement occurs
+        for i in range(self.numberOfParticles):
             for j in range(self.numberOfParticles - 1 - i):
                 if self.particleList[i].circleCircleCollision(
                         self.particleList[i+j+1]) == True:

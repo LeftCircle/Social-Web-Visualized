@@ -20,6 +20,8 @@ class Particle:
         self.radius = radius
         self.thickness = thickness
         self.velocity = velocity
+        #why the angle is not being determined based on velocity and position
+        #I do not know...but such is the code at this point
         self.angle = angle #in radians...normal raidans or reversed?
         self.mass = 1
         self.airtime = 0
@@ -45,6 +47,10 @@ class Particle:
     def xvel(self):
         return self.velocity * np.cos(self.angle)
     
+    def updateVel(self, xvel, yvel):
+        self.velocity = np.sqrt(xvel**2 + yvel**2)
+        self.angle = np.arctan2(yvel, xvel)
+        
     def damping(self):
         self.velocity *= 0.98
         
@@ -123,7 +129,7 @@ class Particle:
         normDirSelfToPartX = distX / magDist
         normDirSelfToPartY = distY / magDist
         #self should move - normDirSelfTo.. and other should move positive?
-        angleReflSelf = np.arctan2(normDirSelfToPartX, normDirSelfToPartY)
+        angleReflSelf = np.arctan2(normDirSelfToPartY, normDirSelfToPartX)
         #only doing logic if there is a collision
         if distSq <= radiusSum**2:
             #providing a test impulse in the opposite direction
