@@ -10,10 +10,18 @@ import pygameTutorial as pgt
 pygame.draw.circle(game_display, (0,0,255), 
                    (int(width / 2), int(height / 2)), 
                    15, 1)
+
+NOTE: lack of conservation of energy and momentum leads to non-physical
+behaviors which is most notable in collisions and spinning linked particles
+not maintaining angular momentum about the mass average.
+
+Collisions still look funky ish but that is ok for now. Can be updated if we
+want to use the code for something other than the social web
 '''
 
 class Particle:
-    def __init__(self, color, x, y, radius, thickness, velocity, angle):
+    def __init__(self, color, x, y, radius, thickness, velocity, angle, 
+                 springLinks):
         self.color = color
         self.x = x #x position of the center
         self.y = y #y position of the center
@@ -30,14 +38,9 @@ class Particle:
         self.game_display = pygame.display.set_mode((self.width, self.height))
         self.dt = 0
         self.selectedParticle = False #ability to click on a particle to drag
+        self.springLinked = False     #check to see if the particle is linked
+        self.springLinks = springLinks #tells what particles it is linked to.
     
-    
-    '''
-    def dt_and_oldTime(self, oldTime):
-        t = pygame.time.get_ticks()
-        dt = (t - oldTime) / 1000.0
-        return dt, t
-    '''
     def updateDeltaTime(self, newDeltaTime):
         self.dt = newDeltaTime
         
@@ -139,9 +142,10 @@ class Particle:
             otherParticle.x -= normDirSelfToPartX
             otherParticle.y -= normDirSelfToPartY
             
-            self.velocity += 0 ; self.angle += np.pi
+            self.velocity += 0 ; self.angle = angleReflSelf#; self.angle += np.pi
             otherParticle.velocity += 0
-            otherParticle.angle += np.pi
+            #otherParticle.angle += np.pi
+            otherParticle.angle = -angleReflSelf
     
     
      

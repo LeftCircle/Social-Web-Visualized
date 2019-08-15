@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 import SWParticles as swp
 import massSpring as spring
+
 class App:
     def __init__(self):
         self.running = True
@@ -16,6 +17,45 @@ class App:
         self.numberOfParticles = 5
         self.particleList = []
     
+    #list of functions that will be used below
+    def updateDt(self):
+        #creating dt
+        currentTime = pygame.time.get_ticks()
+        self.dt = (currentTime - self.oldTime) / 1000.0
+        #sloppy fix to get the first dt correct
+        if self.dt > 10:
+                self.dt = 0        
+        self.oldTime = currentTime
+    
+    #linking particle i and particle j
+    def linkParticles(self, i, j):
+        pos1 = np.array([self.particleList[i].x, self.particleList[i].y]) 
+        pos2 = np.array([self.particleList[j].x, self.particleList[j].y])
+        
+        vel1 = np.array([self.particleList[i].xvel(),
+                         self.particleList[i].yvel()])
+        vel2 = np.array([self.particleList[j].xvel(),
+                         self.particleList[j].yvel()])
+        #position1, velocity1, position2, velocity2, ks, kd, restLength, dt
+        firstLink = spring.SpringLink(pos1, vel1, pos2, vel2,
+                                      5, 2, 50, self.dt)
+        newPosAndVel = firstLink.springForceRK4()
+        self.particleList[i].x = newPosAndVel[0][0]
+        self.particleList[i].y = newPosAndVel[0][1]
+        self.particleList[i].updateVel(newPosAndVel[1][0], 
+                                       newPosAndVel[1][1])
+                
+        self.particleList[j].x = newPosAndVel[2][0]
+        self.particleList[j].y = newPosAndVel[2][1]
+        self.particleList[j].updateVel(newPosAndVel[3][0], 
+                                       newPosAndVel[3][1])
+        
+    def drawLink(self, i, j, color):
+        pygame.draw.aaline(self.game_display, color, (self.particleList[i].x,
+                           self.particleList[i].y), (self.particleList[j].x,
+                                            self.particleList[j].y))
+#------------------------------------------------------------------------------    
+    #rendering and everything goes on below here
     #starting positions of particles should go here    
     def on_init(self):
         pygame.init()
@@ -29,8 +69,7 @@ class App:
             yPos = (np.random.randint(20, self.height - 20))
             #color, x, y, radius, thickness, velocity, angle 
             self.particleList.append(swp.Particle((0,0,255), xPos, 
-                                            yPos, 15, 0, 2, np.pi / 3.)
-                                            )
+                                            yPos, 15, 0, 2, np.pi / 3., i))
         
     def on_event(self, event):
         #closing the window
@@ -58,14 +97,8 @@ class App:
        
     #logic to occur each loop. Can create a dt here!        
     def on_loop(self):
-        
-        #creating dt
-        currentTime = pygame.time.get_ticks()
-        self.dt = (currentTime - self.oldTime) / 1000.0
-        #sloppy fix to get the first dt correct
-        if self.dt > 10:
-                self.dt = 0        
-        self.oldTime = currentTime
+        #generating dt for this frame
+        self.updateDt()
         
         #updating particles | doing this with cuda would be hot
         for i in range(self.numberOfParticles):
@@ -73,50 +106,33 @@ class App:
             self.particleList[i].updateDeltaTime(self.dt)
             self.particleList[i].move()
             self.particleList[i].mouseDrag()
-            if i == self.numberOfParticles - 1:
+            if i == self.numberOfParticles - 1:  #just giving the last particle gravity for testing
                 self.particleList[i].gravity()
             self.particleList[i].bounce(0.8)
-            
+           
         #updating particles 1 and 2 which are linked by a spring
-        #NOTE!!!! springs break the ability to click on a linked particle.
-        pos1 = np.array([self.particleList[0].x, self.particleList[0].y]) 
-        pos2 = np.array([self.particleList[1].x, self.particleList[1].y])
-        
-        vel1 = np.array([self.particleList[0].xvel(),
-                         self.particleList[0].yvel()])
-        vel2 = np.array([self.particleList[1].xvel(),
-                         self.particleList[1].yvel()])
-        #position1, velocity1, position2, velocity2, ks, kd, restLength, dt
-        firstLink = spring.SpringLink(pos1, vel1, pos2, vel2,
-                                      5, 2, 50, self.dt)
-        newPosAndVel = firstLink.springForceRK4()
-        self.particleList[0].x = newPosAndVel[0][0]
-        self.particleList[0].y = newPosAndVel[0][1]
-        self.particleList[0].updateVel(newPosAndVel[1][0], 
-                                       newPosAndVel[1][1])
-                
-        self.particleList[1].x = newPosAndVel[2][0]
-        self.particleList[1].y = newPosAndVel[2][1]
-        self.particleList[1].updateVel(newPosAndVel[3][0], 
-                                       newPosAndVel[3][1])
-        
-        
+        self.linkParticles(0,1)   
+
+        #collision detection must occur last
         #collision must be checked after all of the movement occurs
         for i in range(self.numberOfParticles):
-            for j in range(self.numberOfParticles - 1 - i):
-                if self.particleList[i].circleCircleCollision(
-                        self.particleList[i+j+1]) == True:
-                    print('Collision detected')
-                    self.particleList[i].angle += np.pi
-                    self.particleList[i+j].angle += np.pi
-                
-                    
+            for j in range(i+1, self.numberOfParticles):
+                self.particleList[i].circleCircleCollision(
+                        self.particleList[j])                                
     
     def on_render(self):
         #render the updated positions
         self.game_display.fill(self.background_color)
+        
+        self.drawLink(0, 1, (0,0,0))
+        #drawing links first 
+        #(display, color, (x1, y1), (x2, y2))
+        #pygame.draw.aaline(self.game_display, (0,0,0), (self.particleList[0].x,
+        #                   self.particleList[0].y), (self.particleList[1].x,
+        #                                    self.particleList[1].y))
         for i in range(self.numberOfParticles):
             self.particleList[i].display()
+        
         pygame.display.flip()
  
     def on_cleanup(self):

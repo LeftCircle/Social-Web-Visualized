@@ -3,19 +3,15 @@
 Created on Mon Aug  5 13:38:59 2019
 basic mass spring solver using rk4
 
-In order to update SWParticles, the velocity and the positions of the particles
+NOTE! This returns integer values so as to work with pygame. If floats are 
+desired then the final int statement at the end can be removed
+
+To update SWParticles, the velocity and the positions of the particles
 must be extracted. New values are then calculated through the SpringLink class
 and must then be put back into the SWParticles class. 
 """
 import numpy as np
-'''
-#initial conditions (will have to be trashed. Cannot be used in general code)
-ks = 5    #spring constant
-kd = 5    #damping coefficient
-r = 10    #rest length | will be a function to determine this for social web
-h = 0.05 #timestep NOTE: this will have to be dt from wherever we built that
-endTime = 10 #seconds the simulation will run
-'''
+
 #note, as endT -> inf, |I - r| -> 0
 
 class SpringLink:
@@ -85,7 +81,11 @@ class SpringLink:
         posAdd = self.dt / 6.0 * ( k1 + 2.0 * k2 + 2.0 * k3 + k4)
         velAdd = self.dt / 6.0 * ( l1 + 2.0 * l2 + 2.0 * l3 + l4)
         
-        self.position1 += posAdd ; self.position2 -= posAdd
+        #must be ints to work with pygame
+        self.position1[0] += int(posAdd[0])
+        self.position1[1] += int(posAdd[1])
+        self.position2[0] -= int(posAdd[0])
+        self.position2[1] -= int(posAdd[1])
         self.velocity1 += velAdd ; self.velocity2 -= velAdd
         
         #new values to update nodes with
