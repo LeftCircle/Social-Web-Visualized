@@ -14,3 +14,5 @@ This can be accomplished by fixing the position of the most influencial person a
 that person using their ~6 most influencial friends, then creating smaller social webs that extend from those 6 people. 
 If links occurring across these smaller social webs create clutter, then these links could potentially be shown through
 making the nodes the same color. 
+
+These files must be in the same location as the FB scraper python files, specifically the csv that shows who is connected with who.
