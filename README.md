@@ -6,7 +6,10 @@ pygame to function, but only uses pygame to draw the positions of the nodes and 
 
 ## Dependencies
 
-pygame and numpy are required, and can be downloaded by:
+If the social web is being visualized, the files must be in the same folder as the FB Scraper files:
+[GitHub](https://github.com/jrbaker4/FacebookScraper)
+
+pygame and numpy are also required, and can be downloaded by:
 
 **pip3 install pygame numpy**
 
