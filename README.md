@@ -2,7 +2,13 @@
 
 Using Pygame is an interactive way to visualize the social web. Although the images may not be as sharp as some other 
 data visualization software, the code is largely transferable in that the physics engine I developed does not require
-pygame to function, but only uses pygame to draw the positions of the nodes and links. 
+pygame to function, but only uses pygame to draw the positions of the nodes and links.
+
+The most notable portion of this code is the spring solver, which uses an rk4 method to solve for the position of linked particles. 
+
+Also a big thanks to Peter Collingridge for his pygamerr physics simulation tutorial which can be found here:
+https://www.petercollingridge.co.uk/tutorials/pygame-physics-simulation/
+This helped me get started with the code. 
 
 ## Dependencies
 
