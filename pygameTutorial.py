@@ -14,8 +14,11 @@ class App:
         #initializing getTicksLastGrame to create a dt but this might not work
         self.oldTime = pygame.time.get_ticks()
         self.dt = 0
-        self.numberOfParticles = 5
+        self.numberOfParticles = 7
         self.particleList = []
+
+        # linked particles will always have the lower particle number first
+        self.linked_particles = []
     
     #list of functions that will be used below
     def updateDt(self):
@@ -29,6 +32,10 @@ class App:
     
     #linking particle i and particle j
     def linkParticles(self, i, j):
+        min_index = min(i, j)
+        max_index = max(i, j)
+
+
         pos1 = np.array([self.particleList[i].x, self.particleList[i].y]) 
         pos2 = np.array([self.particleList[j].x, self.particleList[j].y])
         
@@ -50,10 +57,22 @@ class App:
         self.particleList[j].updateVel(newPosAndVel[3][0], 
                                        newPosAndVel[3][1])
         
+        if (min_index, max_index) in self.linked_particles:
+            return 0
+        self.linked_particles.append((min_index, max_index))
+
+        
     def drawLink(self, i, j, color):
         pygame.draw.aaline(self.game_display, color, (self.particleList[i].x,
                            self.particleList[i].y), (self.particleList[j].x,
                                             self.particleList[j].y))
+
+    def draw_all_links(self, color=(0,0,0)):
+        n_linked = len(self.linked_particles)
+        for i in range(n_linked):
+            self.drawLink(self.linked_particles[i][0],
+                          self.linked_particles[i][1],
+                          color=color)
 #------------------------------------------------------------------------------    
     #rendering and everything goes on below here
     #starting positions of particles should go here    
@@ -70,6 +89,7 @@ class App:
             #color, x, y, radius, thickness, velocity, angle 
             self.particleList.append(swp.Particle((0,0,255), xPos, 
                                             yPos, 15, 0, 2, np.pi / 3., i))
+        self.particleList[self.numberOfParticles - 2].has_gravity = True
         
     def on_event(self, event):
         #closing the window
@@ -78,9 +98,12 @@ class App:
                         event.key == pygame.K_ESCAPE)):
             pygame.quit()
             self.running = False
+        events = pygame.event.get()
+        
         
         #checking to see if the player has clicked the screen
         if event.type == pygame.MOUSEBUTTONDOWN:
+            print('MOUSE BUTTON DOWN!')
             (mouseX, mouseY) = pygame.mouse.get_pos()
             #adding functionality with clicks | currently happening before move
             for i in range(self.numberOfParticles):
@@ -89,6 +112,9 @@ class App:
                     abs(mouseY - particle.y) < particle.radius):
                         particle.color = (255,0,0)
                         self.particleList[i].selectedParticle = True
+                        
+                            
+
         if event.type == pygame.MOUSEBUTTONUP:
             for i in range(self.numberOfParticles):
                 self.particleList[i].selectedParticle = False
@@ -99,6 +125,14 @@ class App:
     def on_loop(self):
         #generating dt for this frame
         self.updateDt()
+
+        gravity_switch = False
+        #for event in events:
+        #    print(event)
+        pressed = pygame.key.get_pressed()
+        if pressed[pygame.K_g]:
+            print('G key has been pressed')
+            gravity_switch = True
         
         #updating particles | doing this with cuda would be hot
         for i in range(self.numberOfParticles):
@@ -106,12 +140,18 @@ class App:
             self.particleList[i].updateDeltaTime(self.dt)
             self.particleList[i].move()
             self.particleList[i].mouseDrag()
-            if i == self.numberOfParticles - 1:  #just giving the last particle gravity for testing
-                self.particleList[i].gravity()
+            #if i == self.numberOfParticles - 1:  #just giving the last particle gravity for testing
+            #    self.particleList[i].gravity()
+            self.particleList[i].gravity()
             self.particleList[i].bounce(0.8)
+            if gravity_switch and self.particleList[i].selectedParticle:
+                self.particleList[i].switch_gravity()
            
         #updating particles 1 and 2 which are linked by a spring
-        self.linkParticles(0,1)   
+        self.linkParticles(0, 1)
+        self.linkParticles(0, 2)
+        self.linkParticles(1, 2)
+        self.linkParticles(3, 4)   
 
         #collision detection must occur last
         #collision must be checked after all of the movement occurs
@@ -124,7 +164,7 @@ class App:
         #render the updated positions
         self.game_display.fill(self.background_color)
         
-        self.drawLink(0, 1, (0,0,0))
+        self.draw_all_links()
         #drawing links first 
         #(display, color, (x1, y1), (x2, y2))
         #pygame.draw.aaline(self.game_display, (0,0,0), (self.particleList[0].x,

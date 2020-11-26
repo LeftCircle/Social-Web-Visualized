@@ -19,6 +19,8 @@ Collisions still look funky ish but that is ok for now. Can be updated if we
 want to use the code for something other than the social web
 '''
 
+GRAVITY = 5.0
+
 class Particle:
     def __init__(self, color, x, y, radius, thickness, velocity, angle, 
                  springLinks):
@@ -40,6 +42,7 @@ class Particle:
         self.selectedParticle = False #ability to click on a particle to drag
         self.springLinked = False     #check to see if the particle is linked
         self.springLinks = springLinks #tells what particles it is linked to.
+        self.has_gravity = False
     
     def updateDeltaTime(self, newDeltaTime):
         self.dt = newDeltaTime
@@ -73,10 +76,16 @@ class Particle:
     def potentialEnergy(self):
         return self.mass * 9.8 * self.height - self.y
     
-    def gravity(self,):
-         if self.selectedParticle == False:
+    def gravity(self):
+         if self.selectedParticle == False and self.has_gravity:
              self.airtime += self.dt
-             self.y += 0.5 * 9.8 * self.airtime**2
+             self.y += 0.5 * GRAVITY * self.airtime**2
+
+    def switch_gravity(self):
+        '''
+        swithces the gravity to either on or off. whichever one it is currently not
+        '''
+        self.has_gravity = not self.has_gravity
         
     #for a rebound reset, self.x = 2 * (width - self.radius) - self.x
     #adding in non elastic collisions
@@ -120,6 +129,7 @@ class Particle:
             self.velocity = np.sqrt(dx**2 + dy**2)
             self.x = mouseX
             self.y = mouseY
+
     
     def circleCircleCollision(self, otherParticle):
         radiusSum = self.radius + otherParticle.radius
